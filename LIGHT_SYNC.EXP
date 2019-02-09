@@ -1,0 +1,110 @@
+
+(* @NESTEDCOMMENTS := 'Yes' *)
+(* @PATH := '\/Funktionsbloecke\/Lichtblöcke' *)
+(* @OBJECTFLAGS := '0, 8' *)
+(* @SYMFILEFLAGS := '2048' *)
+FUNCTION_BLOCK LIGHT_SYNC
+VAR_INPUT
+	PB_IN : BOOL; (* Input for the pushbutton which shall toggle the light *)
+	OFF_IN: BOOL; (* Input for the any logic which shall switch off the light. Can be left without any connection if there is not such logic *)
+END_VAR
+VAR_INPUT CONSTANT
+	ID_ROOM : BYTE := 0; (* unique number for room between 1 and 254. Not same number as any ID_FLOOR '*)
+	ID_FLOOR : BYTE := 0; (* unique number for floor between 1 and 254. Not same number as any ID_ROOM *)
+	T_ROOM : TIME := t#500ms; (* duration of button press to switch off light of whole room *)
+	T_FLOOR : TIME := t#2000ms; (* duration of button press to switch off light of whole floor. Must be higher than T_ROOM *)
+	T_ALL : TIME := t#4000ms;  (* duration of button press to switch off all lights Must be higher than T_FLOOR *)
+	SELF_OFF : BOOL := TRUE; (* Set to FALSE if long press of the pushbutton connected  to this block should not switch off the light connected this block but only the others in the room / floor / building *)
+END_VAR
+VAR_IN_OUT
+	lightSync_u8 : BYTE; (* externally variable of type BYTE which is connected to all LIGHT_SYNC blocks. It is used for communicatoin between the instances of the block *)
+END_VAR
+VAR_OUTPUT
+	PB_OUT : BOOL := FALSE; (* Output to the pushbutton input of the LICHT function block. In case of PASSIVE = TRUE this is a modified routing through of PB_IN, otherwise PB_OUT
+	will just go to TRUE for one cycle in case of a short pushbutton press and in case of a long press it will remain FALSE *)
+	OFF_OUT : BOOL := FALSE; (* The disjuction (=OR) of the OFF_IN signal and a request to switch off the light from a pushbutton connected locally or connected to other LIGHT_SYNC
+	function blocks *)
+END_VAR
+VAR
+	pushbuttonInOld : BOOL := FALSE;
+	tx : TIME;
+	tStart : TIME;
+	tPressed : TIME;
+	lightSyncState_u8: BYTE := 0;
+END_VAR
+VAR CONSTANT
+	ID_ALL : BYTE := 255;
+END_VAR
+(* @END_DECLARATION := '0' *)
+(* read system time *)
+tx := DWORD_TO_TIME(T_PLC_MS());
+
+
+OFF_OUT := OFF_IN; (* OFF_OUT might be set true below for a while - this results into an or-condition *)
+
+IF PB_IN THEN
+	(* Pos edge handling *)
+	IF NOT pushbuttonInOld THEN
+		tStart := tx;
+	END_IF
+	tPressed := tx - tStart;
+	CASE (lightSyncState_u8) OF
+
+	0:
+		IF tPressed > T_ROOM THEN
+			lightSyncState_u8 := 1;
+			lightSync_u8 := ID_ROOM;
+			IF (SELF_OFF) THEN
+				OFF_OUT := TRUE;
+			END_IF
+		END_IF
+
+	1:
+		(* OFF_OUT := FALSE;   OFF_OUT must not be cleared, follows OFF_IN if nothing else assigned *)
+		IF tPressed > T_FLOOR THEN
+			lightSyncState_u8 := 2;
+			lightSync_u8 := ID_FLOOR;
+		ELSE
+			lightSync_u8 := 0;
+		END_IF
+
+	2:
+			IF tPressed > T_ALL THEN
+				lightSyncState_u8 := 3;
+				lightSync_u8 := 255;
+			ELSE
+				lightSync_u8 := 0;
+			END_IF
+
+	3: (* LOOOONGEST BUTTON PRESS *)
+		lightSync_u8 := 0;
+
+	END_CASE
+ELSE
+	IF pushbuttonInOld THEN (* first cycle after pushbutton has been released *)
+		IF (lightSyncState_u8 = 0) THEN
+			PB_OUT := TRUE;
+		ELSE
+			lightSync_u8 := 0;
+			lightSyncState_u8 := 0;
+		END_IF
+	ELSE
+		PB_OUT := FALSE;
+		(* TODO react on lightSync from other blocks her *)
+		IF (lightSync_u8 > 0) THEN
+			IF (lightSync_u8 = ID_ROOM) OR (lightSync_u8 = ID_FLOOR) OR (lightSync_u8 = ID_ALL) THEN
+				OFF_OUT := TRUE; (* cleared in else case by following OFF_IN *)
+			END_IF
+		END_IF
+	END_IF
+END_IF
+
+pushbuttonInOld := PB_IN;
+
+(* Author: MacPiper
+Changelog:
+* 4.2.2019 ver 1.2: removed PASSIVE parameter as the functionality can be reached by not using PB_IN and PB_OUT
+* 24.1.2019 ver 1.1: PASSIVE parameter handling mplemented 
+* 10.1.2019 ver 1.0: initial tested version
+*)
+END_FUNCTION_BLOCK
