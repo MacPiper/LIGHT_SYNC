@@ -75,6 +75,7 @@ If the block shall act passively only (receive switch off requests and react on 
 
 Changelog
 ---------
+* 10.2.2019 ver 1.3: Collision avoidance: Write request to lightSync_u8 in a later cycle in case there is a  request from another instance running
 * 4.2.2019 ver 1.2: removed PASSIVE parameter as the functionality can be reached by not using PB_IN and PB_OUT
 * 24.1.2019 ver 1.1: PASSIVE parameter handling implemented 
 * 10.1.2019 ver 1.0: initial tested version

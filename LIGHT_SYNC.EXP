@@ -51,9 +51,9 @@ IF PB_IN THEN
 	CASE (lightSyncState_u8) OF
 
 	0:
-		IF tPressed > T_ROOM THEN
-			lightSyncState_u8 := 1;
+		IF (tPressed > T_ROOM) AND (lightSync_u8 = 0) THEN
 			lightSync_u8 := ID_ROOM;
+			lightSyncState_u8 := 1;
 			IF (SELF_OFF) THEN
 				OFF_OUT := TRUE;
 			END_IF
@@ -61,23 +61,30 @@ IF PB_IN THEN
 
 	1:
 		(* OFF_OUT := FALSE;   OFF_OUT must not be cleared, follows OFF_IN if nothing else assigned *)
-		IF tPressed > T_FLOOR THEN
-			lightSyncState_u8 := 2;
-			lightSync_u8 := ID_FLOOR;
-		ELSE
-			lightSync_u8 := 0;
-		END_IF
+		lightSync_u8 := 0;
+		lightSyncState_u8 := 2;
 
 	2:
-			IF tPressed > T_ALL THEN
-				lightSyncState_u8 := 3;
-				lightSync_u8 := 255;
-			ELSE
-				lightSync_u8 := 0;
-			END_IF
+		IF (tPressed > T_FLOOR) AND (lightSync_u8 = 0) THEN
+			lightSync_u8 := ID_FLOOR;
+			lightSyncState_u8 := 3;
+		END_IF
 
-	3: (* LOOOONGEST BUTTON PRESS *)
+	3:
 		lightSync_u8 := 0;
+		lightSyncState_u8 := 4;
+
+	4:
+		IF (tPressed > T_ALL) AND (lightSync_u8 = 0) THEN
+			lightSync_u8 := 255;
+			lightSyncState_u8 := 5;
+		END_IF
+
+	5: (* LOOOONGEST BUTTON PRESS *)
+		lightSync_u8 := 0;
+		lightSyncState_u8 := 6;
+
+	(* 6: not handled, nothing to do *)
 
 	END_CASE
 ELSE
@@ -85,7 +92,9 @@ ELSE
 		IF (lightSyncState_u8 = 0) THEN
 			PB_OUT := TRUE;
 		ELSE
-			lightSync_u8 := 0;
+			IF ((lightSyncState_u8 MOD 2) > 0) THEN
+				lightSync_u8 := 0;
+			END_IF
 			lightSyncState_u8 := 0;
 		END_IF
 	ELSE
@@ -103,6 +112,7 @@ pushbuttonInOld := PB_IN;
 
 (* Author: MacPiper
 Changelog:
+* 10.2.2019 ver 1.3: Collision avoidance: Write request to lightSync_u8 in a later cycle in case there is a  request from another instance running
 * 4.2.2019 ver 1.2: removed PASSIVE parameter as the functionality can be reached by not using PB_IN and PB_OUT
 * 24.1.2019 ver 1.1: PASSIVE parameter handling mplemented 
 * 10.1.2019 ver 1.0: initial tested version
