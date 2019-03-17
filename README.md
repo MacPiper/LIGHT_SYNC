@@ -57,6 +57,7 @@ Parameters
 ----------
 * ID_ROOM : BYTE := 0; (* unique number for room between 1 and 254. Not same number as any ID_FLOOR '*)
 * ID_FLOOR : BYTE := 0; (* unique number for floor between 1 and 254. Not same number as any ID_ROOM *)
+* ID_ALL : BYTE := 255; (* unique number for overall group which are usually all lights and defined to 255 by default. If changing (to have multiple overall groups) do not use same number as any ID_ROOM or ID_FLOOR *)
 * T_ROOM : TIME := t#500ms; (* duration of button press to switch off light of whole room *)
 * T_FLOOR : TIME := t#2000ms; (* duration of button press to switch off light of whole floor. Must be higher than T_ROOM *)
 * T_ALL : TIME := t#4000ms;  (* duration of button press to switch off all lights Must be higher than T_FLOOR *)
@@ -75,16 +76,45 @@ If the block shall act passively only (receive switch off requests and react on 
 
 Changelog
 ---------
+* 16.3.2019 ver 1.4: made ID_ALL configurable
 * 10.2.2019 ver 1.3: Collision avoidance: Write request to lightSync_u8 in a later cycle in case there is a  request from another instance running
 * 4.2.2019 ver 1.2: removed PASSIVE parameter as the functionality can be reached by not using PB_IN and PB_OUT
 * 24.1.2019 ver 1.1: PASSIVE parameter handling implemented 
 * 10.1.2019 ver 1.0: initial tested version
 
 
+LIGHT_SYNC_INJ
+==============
+This function triggers switch off lights connected to LIGH_SYNC blocks through any signal's rising edge.
 
+Functionality
+-------------
+At rising edge on the Input IN the function block triggers switches off all or a group of lights which are connected to a LIGHT_SYNC function block. The request it communicated to the LIGHT_SYNC blocks through the common in-/output variable connected to light_sync_u8
 
+Setup in Codesys
+----------------
+Add a LIGHT_SYNC_INJ block to any program in the project where the variable connected to LIGHT_SYNC block's in-/output lightSync_u8 is visible (anywhere in case this variable is defined globally). Connect that variable to same named in-/output of LIGHT_SYNC_INJ block. Connect the input signal which shall trigger the switch off request to the input OFF. 
+If not all lights should be switched, change GROUP_ID to select which group of lights shall be switched off, e.g. if it shall switch all lights of the ground floor, set GROUP_ID to the number which is set in the related LIGHT_SYNC block's ID_FLOOR parameter
 
+Inputs
+------
+* OFF : BOOL; (* Trigger to inject the request at rising edge. The request will be stored placed at next possibity if other requests are running (lightSync_u8 > 0). *)
 
+Outputs
+-------
+ - none
+
+In-/Output
+----------
+* lightSync_u8 : BYTE; (* externally variable of type BYTE which is connected to all LIGHT_SYNC blocks. It is used for communication between the instances of the block *)
+
+Parameters
+----------
+* GROUP_ID : BYTE := 255; (* ID of the group to switch (ID configured as ID_ROOM or ID_FLOOR in LIGHT_SYNC FB), keep unchanged (=255) in case all lights should be adressed'*)
+
+Changelog
+---------
+* 14.3.2019 ver 1.0: Initial implementation
 
 
 

@@ -1,0 +1,46 @@
+
+(* @NESTEDCOMMENTS := 'Yes' *)
+(* @PATH := '\/Funktionsbloecke\/Lichtblöcke' *)
+(* @OBJECTFLAGS := '0, 8' *)
+(* @SYMFILEFLAGS := '2048' *)
+FUNCTION_BLOCK LIGHT_SYNC_INJ
+VAR_INPUT
+	OFF : BOOL; (* Trigger to inject the request at rising edge. The request will be stored placed at next possibity if other requests are running (lightSync_u8 > 0). *)
+END_VAR
+VAR_INPUT CONSTANT
+	GROUP_ID : BYTE := 255; (* ID of the group to switch (ID configured as ID_ROOM or ID_FLOOR in LIGHT_SYNC FB), keep unchanged (=255) in case all lights should be adressed'*)
+END_VAR
+VAR_IN_OUT
+	lightSync_u8 : BYTE; (* externally variable of type BYTE which is connected to all LIGHT_SYNC blocks. It is used for communicatoin between the instances of the block *)
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	requestState_u8 : BYTE := 0;
+END_VAR
+(* @END_DECLARATION := '0' *)
+CASE (requestState_u8) OF
+	0,1:
+		IF (OFF = TRUE) THEN
+			requestState_u8 := 1;
+		END_IF
+		IF (requestState_u8 = 1) AND (lightSync_u8 = 0) THEN
+			lightSync_u8 := GROUP_ID;
+			requestState_u8 := 2;
+		END_IF
+	2:
+		lightSync_u8 := 0;
+		requestState_u8 := 3;
+
+	3:
+		IF (OFF = FALSE) THEN
+			requestState_u8 := 0;
+		END_IF
+
+END_CASE
+
+(* Author: MacPiper
+Changelog:
+* 14.3.2019 ver 1.0: Initial implementation
+*)
+END_FUNCTION_BLOCK
