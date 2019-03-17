@@ -51,13 +51,13 @@ Outputs
 
 In-/Output
 ----------
-* lightSync_u8 : BYTE; (* externally variable of type BYTE which is connected to all LIGHT_SYNC blocks. It is used for communicatoin between the instances of the block *)
+* lightSync_u8 : BYTE; (* externally variable of type BYTE which is connected to all LIGHT_SYNC blocks. It is used for communication between the instances of the block *)
 
 Parameters
 ----------
-* ID_ROOM : BYTE := 0; (* unique number for room between 1 and 254. Not same number as any ID_FLOOR '*)
-* ID_FLOOR : BYTE := 0; (* unique number for floor between 1 and 254. Not same number as any ID_ROOM *)
-* ID_ALL : BYTE := 255; (* unique number for overall group which are usually all lights and defined to 255 by default. If changing (to have multiple overall groups) do not use same number as any ID_ROOM or ID_FLOOR *)
+* ID_ROOM : BYTE := 0; (* unique number for room between 1 and 254 in normal case, but not same number as any ID_FLOOR or ID_ALL. Set to 0  if no room request shall be sent' *)
+* ID_FLOOR : BYTE := 0; (* unique number for floor between 1 and 254 in normal case, but not same number as any ID_ROOM or ID_ALL. Set to 0 if no floor request shall be sent *)
+* ID_ALL : BYTE := 255; (* unique number for overall group which usually cover all lights. Change only to have multiple 'ALL' groups, but do not use same number as any ID_ROOM or ID_FLOOR *)
 * T_ROOM : TIME := t#500ms; (* duration of button press to switch off light of whole room *)
 * T_FLOOR : TIME := t#2000ms; (* duration of button press to switch off light of whole floor. Must be higher than T_ROOM *)
 * T_ALL : TIME := t#4000ms;  (* duration of button press to switch off all lights Must be higher than T_FLOOR *)
@@ -76,6 +76,7 @@ If the block shall act passively only (receive switch off requests and react on 
 
 Changelog
 ---------
+* 17.3.2019 ver 1.5: handle IDs set to 0
 * 16.3.2019 ver 1.4: made ID_ALL configurable
 * 10.2.2019 ver 1.3: Collision avoidance: Write request to lightSync_u8 in a later cycle in case there is a  request from another instance running
 * 4.2.2019 ver 1.2: removed PASSIVE parameter as the functionality can be reached by not using PB_IN and PB_OUT
